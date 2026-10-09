@@ -1,22 +1,536 @@
-* {
-  box-sizing: border-box;
+import {
+  useEffect,
+  useState
 }
 
-html,
-body,
-#root {
-  width: 100%;
-  min-height: 100%;
-  margin: 0;
+from "react";
+import "./App.css";
+
+// Change this to your Django REST Framework login endpoint.
+// Leave empty to test the frontend without a backend.
+const API_URL="";
+
+export default function App() {
+  const [mode,
+  setMode]=useState("login");
+  const [showPassword,
+  setShowPassword]=useState(false);
+  const [rememberMe,
+  setRememberMe]=useState(true);
+  const [loading,
+  setLoading]=useState(false);
+  const [message,
+  setMessage]=useState("");
+  const [messageType,
+  setMessageType]=useState("");
+
+  const [errors,
+  setErrors]=useState({});
+
+const [form,
+setForm]=useState({
+  name: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+});
+
+useEffect(()=> {
+    const savedEmail=localStorage.getItem("travelly_email");
+
+    if (savedEmail) {
+      setForm((previous)=> ({
+          ...previous,
+          email: savedEmail,
+        }));
+  }
 }
 
-body {
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: "Segoe UI", Arial, sans-serif;
+, []);
+
+function updateField(event) {
+  const {
+    name,
+    value
+  }
+
+  =event.target;
+
+  setForm((previous)=> ({
+      ...previous,
+      [name]: value,
+    }));
+
+setErrors((previous)=> ({
+    ...previous,
+    [name]: "",
+  }));
+
+setMessage("");
 }
 
-button,
-input {
-  font: inherit;
+function validateForm() {
+  const nextErrors= {}
+
+  ;
+  const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (mode==="signup" && !form.name.trim()) {
+    nextErrors.name="Please enter your full name.";
+  }
+
+  if ( !form.email.trim()) {
+    nextErrors.email="Email address is required.";
+  }
+
+  else if ( !emailPattern.test(form.email.trim())) {
+    nextErrors.email="Enter a valid email address.";
+  }
+
+  if (mode !=="forgot") {
+    if ( !form.password) {
+      nextErrors.password="Password is required.";
+    }
+
+    else if (mode==="signup" && form.password.length < 8) {
+      nextErrors.password="Password must contain at least 8 characters.";
+    }
+  }
+
+  if (mode==="signup" && form.password !==form.confirmPassword) {
+    nextErrors.confirmPassword="Passwords do not match.";
+  }
+
+  setErrors(nextErrors);
+  return Object.keys(nextErrors).length===0;
+}
+
+async function handleSubmit(event) {
+  event.preventDefault();
+  setMessage("");
+
+  if ( !validateForm()) return;
+
+  if (rememberMe && mode==="login") {
+    localStorage.setItem("travelly_email", form.email.trim());
+  }
+
+  else if (mode==="login") {
+    localStorage.removeItem("travelly_email");
+  }
+
+  if (mode==="forgot") {
+    if ( !API_URL) {
+      setMessage("Connect your password-reset API to send a reset email."
+      );
+      setMessageType("info");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+
+      const response=await fetch(API_URL.replace(/\/$/, "") + "/forgot-password/",
+        {
+
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }
+
+        ,
+        body: JSON.stringify({
+          email: form.email.trim(),
+        }),
+    });
+
+  if ( !response.ok) {
+    throw new Error("Unable to process your request.");
+  }
+
+  setMessage("If the account exists, reset instructions will be sent.");
+  setMessageType("success");
+}
+
+catch (error) {
+  setMessage(error.message);
+  setMessageType("error");
+}
+
+finally {
+  setLoading(false);
+}
+
+return;
+}
+
+if ( !API_URL) {
+  setMessage(mode==="login"
+    ? "Login form validated. Connect your backend to authenticate."
+    : "Registration form validated. Connect your backend to create an account."
+  );
+  setMessageType("info");
+  return;
+}
+
+setLoading(true);
+
+try {
+  const endpoint=mode==="login" ? "/login/": "/register/";
+
+  const payload=mode==="login"
+
+  ? {
+    email: form.email.trim(),
+      password: form.password,
+  }
+
+  : {
+    name: form.name.trim(),
+      email: form.email.trim(),
+      password: form.password,
+  }
+
+  ;
+
+  const response=await fetch(API_URL.replace(/\/$/, "") + endpoint,
+    {
+
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    }
+
+    ,
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+const data=await response.json().catch(()=> ({}));
+
+if ( !response.ok) {
+  throw new Error(data.detail || data.message || "Unable to authenticate. Check your details."
+  );
+}
+
+setMessage(mode==="login"
+  ? "Login successful!"
+  : "Account created successfully!"
+);
+setMessageType("success");
+
+// Navigate to your dashboard here after successful authentication.
+// For example, use React Router's useNavigate().
+}
+
+catch (error) {
+  setMessage(error.message || "Something went wrong.");
+  setMessageType("error");
+}
+
+finally {
+  setLoading(false);
+}
+}
+
+function switchMode(nextMode) {
+  setMode(nextMode);
+
+  setErrors({});
+setMessage("");
+setShowPassword(false);
+}
+
+function handleSocialLogin(provider) {
+  setMessage(`$ {
+      provider
+    }
+
+    login requires OAuth configuration from your backend.`);
+  setMessageType("info");
+}
+
+const isForgot=mode==="forgot";
+const isSignup=mode==="signup";
+
+return (<main className="travel-page" > <section className="hero-panel" > <div className="hero-overlay" /> <div className="hero-content" > <a className="brand" href="/" aria-label="Travelly home" > <img src="/travel-logo.png"
+  alt="Travelly"
+
+  onError= {
+    (event)=> {
+      event.currentTarget.style.display="none";
+    }
+  }
+
+  /> <span className="brand-fallback" >✈ Travelly</span> </a> <div className="hero-copy" > <p className="eyebrow" >YOUR NEXT JOURNEY STARTS HERE</p> <h1> Discover <br /> Your Next <br /> Adventure </h1> <p className="hero-description" > Explore beautiful destinations, discover new cultures,
+  and create unforgettable memories. </p> <div className="travel-features" > <div className="feature" > <span className="feature-icon" >◎</span> <strong>Amazing</strong> <span>Destinations</span> </div> <div className="feature" > <span className="feature-icon" >♧</span> <strong>Best Travel</strong> <span>Deals</span> </div> <div className="feature" > <span className="feature-icon" >✓</span> <strong>Safe &amp; Easy</strong> <span>Booking</span> </div> </div> <p className="hero-footer" > The world is waiting for you. </p> </div> </div> <div className="hero-bottom" > EXPLORE MORE. WORRY LESS. </div> </section> <section className="form-panel" > <div className="login-card" > <div className="card-heading" > <p className="card-eyebrow" > {
+    isForgot ? "ACCOUNT RECOVERY"
+    : isSignup ? "START YOUR JOURNEY"
+    : "WELCOME BACK"
+  }
+
+  </p> <h2> {
+    isForgot ? "Reset your password"
+    : isSignup ? "Create your account"
+    : "Login to Travelly"
+  }
+
+  </h2> <p className="card-subtitle" > {
+    isForgot ? "Enter your email to request password reset instructions."
+    : isSignup ? "Join us and discover your next adventure."
+    : "Sign in to plan your next journey."
+  }
+
+  </p> </div> <form onSubmit= {
+    handleSubmit
+  }
+
+  noValidate> {
+    isSignup && (<div className="form-group" > <label htmlFor="name" >Full Name</label> <input id="name"
+      name="name"
+      type="text"
+      autoComplete="name"
+      placeholder="Enter your full name"
+
+      value= {
+        form.name
+      }
+
+      onChange= {
+        updateField
+      }
+
+      aria-invalid= {
+        Boolean(errors.name)
+      }
+
+      /> {
+        errors.name && (<span className="field-error" > {
+            errors.name
+          }
+
+          </span>)
+      }
+
+      </div>)
+  }
+
+  <div className="form-group" > <label htmlFor="email" >Email Address</label> <input id="email"
+  name="email"
+  type="email"
+  autoComplete="email"
+  placeholder="Enter your email"
+
+  value= {
+    form.email
+  }
+
+  onChange= {
+    updateField
+  }
+
+  aria-invalid= {
+    Boolean(errors.email)
+  }
+
+  /> {
+    errors.email && (<span className="field-error" > {
+        errors.email
+      }
+
+      </span>)
+  }
+
+  </div> {
+    !isForgot && (<div className="form-group" > <label htmlFor="password" >Password</label> <div className="password-field" > <input id="password"
+      name="password"
+
+      type= {
+        showPassword ? "text" : "password"
+      }
+
+      autoComplete= {
+        isSignup ? "new-password" : "current-password"
+      }
+
+      placeholder="Enter your password"
+
+      value= {
+        form.password
+      }
+
+      onChange= {
+        updateField
+      }
+
+      aria-invalid= {
+        Boolean(errors.password)
+      }
+
+      /> <button className="show-password"
+      type="button"
+
+      onClick= {
+        ()=> setShowPassword( !showPassword)
+      }
+
+      aria-label= {
+        showPassword ? "Hide password" : "Show password"
+      }
+
+      > {
+        showPassword ? "Hide" : "Show"
+      }
+
+      </button> </div> {
+        errors.password && (<span className="field-error" > {
+            errors.password
+          }
+
+          </span>)
+      }
+
+      </div>)
+  }
+
+    {
+    isSignup && (<div className="form-group" > <label htmlFor="confirmPassword" > Confirm Password </label> <input id="confirmPassword"
+      name="confirmPassword"
+
+      type= {
+        showPassword ? "text" : "password"
+      }
+
+      autoComplete="new-password"
+      placeholder="Re-enter your password"
+
+      value= {
+        form.confirmPassword
+      }
+
+      onChange= {
+        updateField
+      }
+
+      aria-invalid= {
+        Boolean(errors.confirmPassword)
+      }
+
+      /> {
+        errors.confirmPassword && (<span className="field-error" > {
+            errors.confirmPassword
+          }
+
+          </span>)
+      }
+
+      </div>)
+  }
+
+    {
+    !isForgot && !isSignup && (<div className="form-options" > <label className="remember-option" > <input type="checkbox"
+
+      checked= {
+        rememberMe
+      }
+
+      onChange= {
+        (event)=> setRememberMe(event.target.checked)
+      }
+
+      /> <span>Remember me</span> </label> <button type="button"
+      className="text-button"
+
+      onClick= {
+        ()=> switchMode("forgot")
+      }
+
+      > Forgot password? </button> </div>)
+  }
+
+    {
+    message && (<div className= {
+        `form-message $ {
+          messageType
+        }
+
+        `
+      }
+
+      role="status"
+      aria-live="polite"
+
+      > {
+        message
+      }
+
+      </div>)
+  }
+
+  <button className="primary-button"
+  type="submit"
+
+  disabled= {
+    loading
+  }
+
+  > {
+    loading ? "Please wait..."
+    : isForgot ? "Send Reset Instructions →"
+    : isSignup ? "Create Account →"
+    : "Login →"
+  }
+
+  </button> </form> {
+    !isForgot && (<> <div className="divider" > <span /> <p>Or continue with</p> <span /> </div> <div className="social-buttons" > <button type="button"
+
+      onClick= {
+        ()=> handleSocialLogin("Google")
+      }
+
+      > <span className="google-mark" >G</span> Google </button> <button type="button"
+
+      onClick= {
+        ()=> handleSocialLogin("Facebook")
+      }
+
+      > <span className="facebook-mark" >f</span> Facebook </button> </div> </>)
+  }
+
+  <div className="card-bottom" > {
+    isForgot ? (<> Remember your password? {
+        " "
+      }
+
+      <button type="button"
+      className="text-button"
+
+      onClick= {
+        ()=> switchMode("login")
+      }
+
+      > Back to login </button> </>) : isSignup ? (<> Already have an account? {
+        " "
+      }
+
+      <button type="button"
+      className="text-button"
+
+      onClick= {
+        ()=> switchMode("login")
+      }
+
+      > Login </button> </>) : (<> Don't have an account?{" "}
+ <button type="button"
+      className="text-button"
+
+      onClick= {
+        ()=> switchMode("signup")
+      }
+
+      > Sign up </button> </>)
+  }
+
+  </div> </div> </section> </main>);
 }
